@@ -1,7 +1,54 @@
 #include <Windows.h>
 #include <stdio.h>
 #include <tchar.h>
+#include <winternl.h>
 
+typedef NTSTATUS(NTAPI* NT_QUERY_INFORMATION_PROCESS)(
+	IN HANDLE ProcessHandle,
+	IN PROCESSINFOCLASS ProcessInformationClass,
+	OUT PVOID ProcessInformation,
+	IN ULONG ProcessInformationLength,
+	OUT PULONG ReturnLength OPTIONAL);
+	
+
+int NTapiCreateProcess() 
+{
+	NTSTATUS status;
+	PPROCESS_BASIC_INFORMATION pbi;
+	DWORD dwSize;
+
+	HMODULE hNtdll;
+	NT_QUERY_INFORMATION_PROCESS hNtQueryInformationProcess;
+	hNtdll = LoadLibrary(L"ntdll.dll\0");
+	hNtQueryInformationProcess = (NT_QUERY_INFORMATION_PROCESS)GetProcAddress(hNtdll, "NtQueryInformationProcess");
+
+	//Call to get the size 
+	hNtQueryInformationProcess(
+		GetCurrentProcess(),
+		ProcessBasicInformation,
+		NULL,
+		0,
+		&dwSize);
+
+	//Allocate Memory
+	pbi = (PPROCESS_BASIC_INFORMATION)malloc(dwSize);
+	RtlZeroMemory(pbi, dwSize);
+
+	// Call Again
+	status = hNtQueryInformationProcess(
+		GetCurrentProcess(),
+		ProcessBasicInformation,
+		pbi,
+		sizeof(PROCESS_BASIC_INFORMATION),
+		&dwSize);
+
+	if (!NT_SUCCESS(status)) {
+		printf("NtQueryInformationProcess Failed: %ld.\n", status);
+		return 1;
+	}
+
+	printf("PEB base Address: 0x%p\n", pbi->PebBaseAddress);
+}
 
 int RTOCreateProcess()
 {
@@ -54,6 +101,6 @@ int main()
 {
 	//The L denotes tge wchar_t literal needed for the function.
 	MessageBox(NULL, L"You are hacked", L"Alert", 0);
-	return RTOCreateProcess();
+	return NTapiCreateProcess();
 	//return 0;
 }

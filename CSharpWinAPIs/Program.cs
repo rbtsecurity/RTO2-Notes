@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using CSharpWinAPIs.Classes;
 
@@ -6,8 +7,8 @@ namespace CSharpWinAPIs
 {
     internal class Program
     {
-        //Setting the Marshalling 
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        //Setting the Marshalling                           Setting error handling 
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         static extern int MessageBox(IntPtr hWnd, string lpText, string lpCaption, uint uType);
 
         static void Main(string[] args)
@@ -33,7 +34,8 @@ namespace CSharpWinAPIs
 
             if (!success) 
             {
-                Console.WriteLine("Create Process Failed");
+                var exception = new Win32Exception(Marshal.GetLastWin32Error()); //Error Handling 
+                Console.WriteLine("Create Process Failed", exception.Message);
                 return;
             }
 
